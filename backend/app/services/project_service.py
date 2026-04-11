@@ -15,6 +15,10 @@ class ProjectService:
         return session.get(Project, project_id)
 
     @staticmethod
+    def get_all_projects(session: Session):
+        return session.exec(select(Project)).all()
+
+    @staticmethod
     def assign_team(session: Session, project_id: int, team_id: int):
         project = ProjectService.get_project_by_id(session, project_id)
         if project:
