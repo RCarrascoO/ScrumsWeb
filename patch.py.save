@@ -1,0 +1,1207 @@
+
+ 
+
+y
+
+echo "import re
+
+with open('frontend/app/projects/[id]/sprints/[sprintId]/page.tsx', 'r') as f:
+    content = f.read()
+
+assign_func = \"\"\"
+  const handleAssignTask = async (taskId: string) => {
+    const email = prompt(\"Ingresa el correo del usuario a asignar:\");
+    if (email) {
+      try {
+        await tasksApi.assignEmail(taskId, email);
+        alert(\"Usuario asignado exitosamente.\");
+        fetchData();
+      } catch (err: any) {
+         if (err.response?.status === 404) alert(\"Usuario o tarea no encontrados.\");
+         else if (err.response?.status === 403) alert(\"Permisos insuficientes.\");
+         else alert(\"Error al asignar usuario.\");
+      }
+    }
+  }
+\"\"\"
+
+content = content.replace(
+    'const updateTaskStatus = async (taskId: string, newStatus: string) => {',
+    assign_func + '\n  const updateTaskStatus = async (taskId: string, newStatus: string) => {'
+)
+
+content = content.replace(
+    'alert(\"Error al crear la tarea.\");',
+    'alert(\"Error al crear la tarea. Verifica tus permisos.\");'
+)
+
+content = content.replace(
+    'const { user, loading } = useAuth();',
+    'const { user, loading } = useAuth();\n  const isManagerOrAdmin = user?.role === \"ADMIN\" || user?.role === \"MANAGER\";'
+)
+
+content = content.replace(
+    'const updateTaskStatus = async (taskId: string, newStatus: string) => {',
+    \"\"\"const updateTaskStatus = async (taskId: string, newStatus: string, assigneeId: number) => {
+    if (!isManagerOrAdmin && assigneeId !== user?.id) {
+       alert(\"No puedes mover una tarea que no tienes asignada.\");
+       return;
+    }\"\"\"
+)
+
+content = content.replace(
+    'onChange={(e) => updateTaskStatus(task.id, e.target.value)}',
+    'onChange={(e) => updateTaskStatus(task.id, e.target.value, task.assignee_id)}'
+)
+
+content = content.replace(
+    'const registerHour = async (taskId: string, currentSpent: number) => {',
+    \"\"\"const registerHour = async (taskId: string, currentSpent: number, assigneeId: number) => {
+    if (!isManagerOrAdmin && assigneeId !== user?.id) {
+       alert(\"No puedes registrar horas en una tarea ajena.\");
+       return;
+    }\"\"\"
+)
+
+content = content.replace(
+    'const reduceHour = async (taskId: string, currentSpent: number) => {',
+    \"\"\"const reduceHour = async (taskId: string, currentSpent: number, assigneeId: number) => {
+    if (!isManagerOrAdmin && assigneeId !== user?.id) {
+       alert(\"No puedes modificar las horas de una tarea ajena.\");
+       return;
+    }\"\"\"
+)
+
+content = content.replace(
+    'onClick={() => reduceHour(task.id, task.spent_hours)}',
+    'onClick={() => reduceHour(task.id, task.spent_hours, task.assignee_id)}'
+)
+content = content.replace(
+    'onClick={() => registerHour(task.id, task.spent_hours)}',
+    'onClick={() => registerHour(task.id, task.spent_hours, task.assignee_id)}'
+)
+
+content = content.replace(
+    '<div style={{ display: \"flex\", justifyContent: \"space-between\", alignItems: \"center\" }}>\n            <h2>Tablero Kanban</h2>\n            <button',
+    \"\"\"<div style={{ display: \"flex\", justifyContent: \"space-between\", alignItems: \"center\" }}>\n            <h2>Tablero Kanban</h2>\n            {isManagerOrAdmin && (<button\"\"\"
+)
+content = content.replace(
+    '+ Crear Tarea\n            </button>\n         </div>',
+    '+ Crear Tarea\n            </button>)}\n         </div>'
+)
+
+content = content.replace(
+    '{isCreatingTask && (',
+    '{isCreatingTask && isManagerOrAdmin && ('
+)
+
+assign_btn = \"\"\"
+                        <div style={{ marginTop: \"10px\", fontSize: \"14px\", borderTop: \"1px solid #eee\", paddingTop: \"5px\"}}>
+                           Asignado a: {task.assignee_id ? \`ID #\${task.assignee_id}\` : \"Nadie\"}
+                           {isManagerOrAdmin && (
+                              <button onClick={() => handleAssignTask(task.id)} style={{ marginLeft: \"10px\", fontSize:\"12px\", background:\"#ddd\", cursor:\"pointer\", border:\"1px solid #ccc\", padding: \"2px 5px\"}}>Reasignar</button>
+                           )}
+                        </div>
+\"\"\"
+
+content = content.replace(
+                        '</span>\n                        </div>\n                        <p style',
+                        '</span>\n                        </div>\n' + assign_btn + '\n                        <p style'
+)
+
+with open('frontend/app/projects/[id]/sprints/[sprintId]/page.tsx', 'w') as f:
+    f.write(content)
+" > patch.py
+python3 patch.py
+python3 patch_frontend.py
+killall -9 nano
+python3 patch_frontend.py
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx | grep "Reasignar"
+cat backend/app/schemas/models.py
+cat backend/app/schemas/models.py
+cat frontend/app/dashboard/page.tsx
+killall -9 nano less bat batcat cargo
+cat backend/app/services/project_service.py
+killall -9 nano less bat batcat cargo
+echo "content = '''from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel import Session
+from ...database import get_session
+from ...schemas.requests import ProjectCreate, ProjectRead
+from ...services.project_service import ProjectService
+from ...services.team_service import TeamService
+from ...services.user_service import UserService
+from ...core.auth import get_current_user, get_manager_user
+from ...schemas.models import User, Team
+
+router = APIRouter(prefix=\"/projects\", tags=[\"projects\"])
+
+@router.post(\"/\", response_model=ProjectRead)
+def create_project(project: ProjectCreate, session: Session = Depends(get_session), current_user: User = Depends(get_manager_user)):
+    team = TeamService.create_team(session, name=f\"Team for {project.name}\")
+    return ProjectService.create_project(session, project.name, project.description, team.id)
+
+@router.get(\"/{project_id}\", response_model=ProjectRead)
+def get_project(project_id: int, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    return ProjectService.get_project_by_id(session, project_id)
+
+@router.get(\"/\", response_model=list[ProjectRead])
+def get_all_projects(session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    return ProjectService.get_all_projects(session, current_user)
+
+@router.post(\"/{project_id}/assign-team/{team_id}\")
+def assign_team(project_id: int, team_id: int, session: Session = Depends(get_session), current_user: User = Depends(get_manager_user)):
+    return ProjectService.assign_team(session, project_id, team_id)
+
+@router.post(\"/{project_id}/assign-user\")
+def assign_user_to_project(project_id: int, email: str, session: Session = Depends(get_session), current_user: User = Depends(get_manager_user)):
+    user = UserService.get_user_by_email(session, email)
+    if not user:
+        raise HTTPException(status_code=404, detail=\"User not found\")
+    
+    project = ProjectService.get_project_by_id(session, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail=\"Project not found\")
+    
+    if not project.team_id:
+        team = TeamService.create_team(session, name=f\"Team for {project.name}\")
+        project = ProjectService.assign_team(session, project.id, team.id)
+        
+    TeamService.add_member(session, project.team_id, user.id)
+    return {\"message\": f\"User assigned successfully\"}
+'''
+
+with open('backend/app/api/routes/projects.py', 'w') as f:
+    f.write(content)
+" > patch_api.py && python3 patch_api.py
+cat backend/app/api/routes/projects.py
+cat << 'EOF' > update_proj_frontend.py
+import re
+
+with open('frontend/app/projects/[id]/page.tsx', 'r') as f:
+    content = f.read()
+
+assign_func = """
+  const handleAssignUser = async () => {
+    const email = prompt("Ingrese el correo del usuario a asignar a este proyecto:");
+    if (email) {
+       try {
+           await projectsApi.assignUser(id, email);
+           alert("Usuario asignado al proyecto exitosamente.");
+       } catch (err: any) {
+           if (err.response?.status === 404) alert("Usuario o proyecto no encontrados.");
+           else alert("Error al asignar al usuario. Revise permisos.");
+       }
+    }
+  }
+"""
+
+# Insertar nuestra función antes de handleCreateSprint
+content = content.replace(
+    'const handleCreateSprint = async (e: React.FormEvent) => {',
+    assign_func + '\n  const handleCreateSprint = async (e: React.FormEvent) => {'
+)
+
+# Añadir el botón en el Header del proyecto
+assign_btn = """
+           {isManagerOrAdmin && (
+             <button onClick={handleAssignUser} style={{ marginLeft: "15px", background: "#17a2b8", color: "white", padding: "8px 15px", borderRadius: "5px", border: "none", cursor: "pointer" }}>👤 Asignar Usuario</button>
+           )}
+"""
+
+content = content.replace(
+    '<h1 style={{ display: "inline-block" }}>Proyecto: {project.name}</h1>\n        </div>',
+    '<h1 style={{ display: "inline-block" }}>Proyecto: {project.name}</h1>\n' + assign_btn + '        </div>'
+)
+
+with open('frontend/app/projects/[id]/page.tsx', 'w') as f:
+    f.write(content)
+EOF
+python3 update_proj_frontend.py
+python3 update_proj_frontend.py
+python3 -c "import sys; sys.path.insert(0, 'backend'); from app.database import init_db; print('OK')"
+cat backend/app/api/routes/users.py
+cat backend/app/api/routes/users.py
+killall -9 nano less bat batcat cargo && cat backend/app/api/routes/users.py | head -n 30
+python3 update_proj_modal.py
+python3 update_task_modal.py
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx | grep "showAssignModalForTask"
+grep "usersApi" frontend/app/projects/\[id\]/page.tsx
+cat frontend/app/projects/\[id\]/page.tsx | grep "handleAssignUser"
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx | head -n 45
+cat << 'EOF' > fix_kanban.py
+with open("frontend/app/projects/[id]/sprints/[sprintId]/page.tsx", "r") as f:
+    text = f.read()
+
+# Add usersApi import
+text = text.replace('tasksApi, sprintsApi', 'tasksApi, sprintsApi, usersApi')
+
+state_injection = """  const [sprint, setSprint] = useState<any>(null);
+  const [tasks, setTasks] = useState([]);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "MEDIUM", estimate_hours: 0 });
+
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [showAssignModalForTask, setShowAssignModalForTask] = useState<string | null>(null);
+  const [searchUser, setSearchUser] = useState("");
+"""
+
+text = text.replace("""  const [sprint, setSprint] = useState<any>(null);
+  const [tasks, setTasks] = useState([]);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "MEDIUM", estimate_hours: 0 });""", state_injection)
+
+
+fetch_injection = """        const [sprintRes, tasksRes] = await Promise.all([
+           sprintsApi.getOne(sprintId),
+           tasksApi.getAll(sprintId)
+        ]);
+        setSprint(sprintRes.data);
+        setTasks(tasksRes.data);
+        
+        if (user?.role === "ADMIN" || user?.role === "MANAGER") {
+             usersApi.getAll().then(res => setUsersList(res.data)).catch(console.error);
+        }"""
+text = text.replace("""        const [sprintRes, tasksRes] = await Promise.all([
+           sprintsApi.getOne(sprintId),
+           tasksApi.getAll(sprintId)
+        ]);
+        setSprint(sprintRes.data);
+        setTasks(tasksRes.data);""", fetch_injection)
+
+
+handle_assign_task = """  const handleAssignTask = async (taskId: string, email: string) => {
+      try {
+        await tasksApi.assignEmail(taskId, email);
+        alert("Usuario asignado exitosamente.");
+        setShowAssignModalForTask(null);
+        fetchTasksData();
+      } catch (err: any) {
+         if (err.response?.status === 404) alert("Usuario o tarea no encontrados.");
+         else if (err.response?.status === 403) alert("Permisos insuficientes.");
+         else alert("Error al asignar usuario.");
+      }
+  }"""
+import re
+text = re.sub(r'  const handleAssignTask = async \(taskId: string\) => \{.+?    \}\n  \}', handle_assign_task, text, flags=re.DOTALL)
+
+
+# Hide task create button
+text = text.replace("""         <button 
+           onClick={() => setIsCreatingTask(!isCreatingTask)}
+           style={{ background: "#0070f3", color: "white", border: "none", padding: "10px 15px", borderRadius: "5px", cursor: "pointer", marginBottom: "15px" }}
+         >
+           {isCreatingTask ? "Cancelar" : "+ Crear Tarea"}
+         </button>""", """         {isManagerOrAdmin && (<button 
+           onClick={() => setIsCreatingTask(!isCreatingTask)}
+           style={{ background: "#0070f3", color: "white", border: "none", padding: "10px 15px", borderRadius: "5px", cursor: "pointer", marginBottom: "15px" }}
+         >
+           {isCreatingTask ? "Cancelar" : "+ Crear Tarea"}
+         </button>)}""")
+
+# Hours Logic Guard
+hours_guard = """<button 
+                                  onClick={() => {
+                                    if (!isManagerOrAdmin && task.assignee_id !== user?.id) {
+                                       alert("No puedes agregar horas a una tarea donde no estás asignado.");
+                                       return;
+                                    }
+                                    const hours = prompt("¿Cuántas horas adicionales usaste en esta tarea?", "1");"""
+
+text = text.replace("""<button 
+                                  onClick={() => {
+                                    const hours = prompt("¿Cuántas horas adicionales usaste en esta tarea?", "1");""", hours_guard)
+
+hours_guard_2 = """<button 
+                                  onClick={() => {
+                                    if (!isManagerOrAdmin && task.assignee_id !== user?.id) {
+                                       alert("No puedes quitar horas a una tarea donde no estás asignado.");
+                                       return;
+                                    }
+                                    const hours = prompt("¿Cuántas horas deseas restar de esta tarea?", "1");"""
+text = text.replace("""<button 
+                                  onClick={() => {
+                                    const hours = prompt("¿Cuántas horas deseas restar de esta tarea?", "1");""", hours_guard_2)
+
+# Update state guard mapping
+text = text.replace('updateTaskStatus(task.id, "IN_PROGRESS")', 'updateTaskStatus(task.id, "IN_PROGRESS", task.assignee_id)')
+text = text.replace('updateTaskStatus(task.id, "TODO")', 'updateTaskStatus(task.id, "TODO", task.assignee_id)')
+text = text.replace('updateTaskStatus(task.id, "DONE")', 'updateTaskStatus(task.id, "DONE", task.assignee_id)')
+
+# Add Assignee logic display
+assignee_display = """                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px", fontSize: "12px", background: "#f1f1f1", padding: "8px", borderRadius: "5px", marginBottom: "10px" }}>
+                          <div style={{ gridColumn: "span 2", marginBottom: "5px", paddingBottom: "5px", borderBottom: "1px solid #ccc" }}>
+                              <b>Asignado a:</b> {task.assignee_id ? `Usuario ID: #${task.assignee_id}` : "Nadie"}
+                              {isManagerOrAdmin && (
+                                <button onClick={() => setShowAssignModalForTask(task.id)} style={{ marginLeft: "10px", fontSize:"11px", padding: "2px 5px", cursor: "pointer" }}>Reasignar</button>
+                              )}
+                          </div>
+                          <div><b>Prioridad:</b> {task.priority}</div>
+                          <div><b>Estimado:</b> {task.estimate_hours || 0}h</div>
+                          <div><b>Usado:</b> {task.spent_hours || 0}h</div>
+                        </div>"""
+text = text.replace("""                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px", fontSize: "12px", background: "#f1f1f1", padding: "8px", borderRadius: "5px", marginBottom: "10px" }}>
+                          <div><b>Prioridad:</b> {task.priority}</div>
+                          <div><b>Estimado:</b> {task.estimate_hours || 0}h</div>
+                          <div><b>Usado:</b> {task.spent_hours || 0}h</div>
+                        </div>""", assignee_display)
+
+
+modal_jsx = """
+      {showAssignModalForTask && isManagerOrAdmin && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ background: "white", padding: "20px", borderRadius: "8px", width: "400px", maxWidth: "90%", maxHeight: "80vh", overflowY: "auto" }}>
+             <h3>Asignar Tarea:</h3>
+             <input 
+               type="text" 
+               placeholder="Buscar por nombre o email..." 
+               value={searchUser} 
+               onChange={e => setSearchUser(e.target.value)}
+               style={{ width: "100%", padding: "8px", marginBottom: "15px", boxSizing: "border-box" }}
+             />
+             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+               {usersList.filter(u => u.email.toLowerCase().includes(searchUser.toLowerCase()) || u.name.toLowerCase().includes(searchUser.toLowerCase())).map(u => (
+                  <li key={u.id} style={{ padding: "10px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                     <div>
+                       <strong>{u.name}</strong> <br/> <small>{u.email}</small> <br/> <small style={{color: "gray"}}>{u.role}</small>
+                     </div>
+                     <button onClick={() => handleAssignTask(showAssignModalForTask, u.email)} style={{ background: "#28a745", color: "white", border: "none", padding: "5px 10px", borderRadius: "3px", cursor: "pointer" }}>Elegir</button>
+                  </li>
+               ))}
+               {usersList.length === 0 && <p>Cargando usuarios...</p>}
+             </ul>
+             <button onClick={() => setShowAssignModalForTask(null)} style={{ marginTop: "15px", width: "100%", background: "#ccc", border: "none", padding: "8px", borderRadius: "4px", cursor: "pointer" }}>Cancelar</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+"""
+
+text = text.replace(
+    '    </div>\n  )\n}',
+    modal_jsx
+)
+
+with open('frontend/app/projects/[id]/sprints/[sprintId]/page.tsx', 'w') as f:
+    f.write(text)
+EOF
+bash -c "python3 fix_kanban.py"
+cat frontend/lib/api.ts | grep assignEmail -A 5
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx | grep -i "usersApi"
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx | grep -i "showAssignModalForTask"
+npm run build --prefix frontend
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx
+git --no-pager diff frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx
+npm run build --prefix frontend
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx | grep -n "Usuario ID" -B 2 -A 5
+cat backend/app/api/routes/users.py | grep get_all_users -A 5
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx | grep "usersApi.getAll" -B 2 -A 2
+npm run build --prefix frontend
+cat frontend/package.json
+cat frontend/package.json
+find frontend/app -name "page.tsx" -o -name "layout.tsx" | wc -l
+find frontend/app -type f \( -name "page.tsx" -o -name "layout.tsx" \)
+tree frontend/app
+cat frontend/app/dashboard/page.tsx
+cat << 'EOF' > make_beautiful.py
+import os
+import re
+
+files = [
+    "frontend/app/login/page.tsx",
+    "frontend/app/register/page.tsx",
+    "frontend/app/projects/[id]/page.tsx",
+    "frontend/app/projects/[id]/sprints/[sprintId]/page.tsx"
+]
+
+for f in files:
+    if os.path.exists(f):
+        with open(f, "r") as file:
+            content = file.read()
+        
+        # General layout updates
+        content = content.replace('style={{ padding: "20px", fontFamily: "sans-serif" }}', 'style={{ padding: "40px", maxWidth: "1200px", margin: "0 auto", fontFamily: "inherit" }}')
+        content = content.replace('style={{ padding: "20px" }}', 'style={{ padding: "40px", maxWidth: "1200px", margin: "0 auto" }}')
+        
+        # Buttons logic
+        content = content.replace('background: "#0070f3"', 'background: "#2563eb", boxShadow: "0 1px 2px rgba(0,0,0,0.05)"')
+        content = content.replace('background: "#ccc"', 'background: "#e2e8f0", color: "#334155"')
+        content = content.replace('background: "#28a745"', 'background: "#10b981"')
+        content = content.replace('background: "#dc3545"', 'background: "#ef4444"')
+        content = content.replace('background: "#17a2b8"', 'background: "#0ea5e9"')
+        content = content.replace('background: "green"', 'background: "#10b981"')
+
+        # Cards and columns
+        content = content.replace('background: "white", padding: "15px", margin: "10px 0", borderRadius: "5px", border: "1px solid #ddd", boxShadow: "0 2px 4px rgba(0,0,0,0.05)"', 'background: "white", padding: "20px", margin: "16px 0", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", gap: "10px"')
+        content = content.replace('backgroundColor: "#f9f9f9", padding: "15px", borderRadius: "8px"', 'backgroundColor: "#f1f5f9", padding: "20px", borderRadius: "16px", border: "1px solid #e2e8f0"')
+
+        # Modals
+        content = content.replace('background: "white", padding: "20px", borderRadius: "8px", width: "400px"', 'background: "white", padding: "30px", borderRadius: "16px", width: "450px", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"')
+
+        # List items
+        content = content.replace('borderBottom: "1px solid #eee"', 'borderBottom: "1px solid #f1f5f9"')
+
+        with open(f, "w") as file:
+            file.write(content)
+EOF
+python3 make_beautiful.py
+cat << 'EOF' > fix_kanban_cards.py
+import re
+
+path = "frontend/app/projects/[id]/sprints/[sprintId]/page.tsx"
+with open(path, 'r') as f:
+    content = f.read()
+
+# Rewrite task cards
+card_structure_old = """                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px", fontSize: "12px", background: "#f1f1f1", padding: "8px", borderRadius: "5px", marginBottom: "10px" }}>
+                          <div style={{ gridColumn: "span 2", marginBottom: "5px", paddingBottom: "5px", borderBottom: "1px solid #ccc" }}>
+                              <b>Asignado a:</b> {task.assignee_id ? (usersList.find(u => u.id === task.assignee_id)?.name || `Usuario ID: #${task.assignee_id}`) : "Nadie"}
+                              {isManagerOrAdmin && (
+                                <button onClick={() => setShowAssignModalForTask(task.id)} style={{ marginLeft: "10px", fontSize:"11px", padding: "2px 5px", cursor: "pointer" }}>Reasignar</button>
+                              )}
+                          </div>
+                          <div><b>Prioridad:</b> {task.priority}</div>
+                          <div><b>Estimado:</b> {task.estimate_hours || 0}h</div>
+                          <div><b>Usado:</b> {task.spent_hours || 0}h</div>
+                        </div>"""
+
+card_structure_new = """                        <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", background: "#f8fafc", padding: "12px", borderRadius: "8px", marginBottom: "12px", border: "1px solid #e2e8f0" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "8px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#cbd5e1", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: "10px" }}>
+                                  {task.assignee_id ? (usersList.find(u => u.id === task.assignee_id)?.name?.[0]?.toUpperCase() || "U") : "?"}
+                                </div>
+                                <b>{task.assignee_id ? (usersList.find(u => u.id === task.assignee_id)?.name || `Usuario ID: #${task.assignee_id}`) : "Sin Asignar"}</b>
+                              </div>
+                              {isManagerOrAdmin && (
+                                <button onClick={() => setShowAssignModalForTask(task.id)} style={{ background: "transparent", border: "1px solid #cbd5e1", borderRadius: "4px", fontSize:"11px", padding: "3px 8px", cursor: "pointer", color: "#475569" }}>Reasignar</button>
+                              )}
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b" }}>
+                            <span><b>Prioridad:</b> <span style={{ padding: "2px 6px", borderRadius: "12px", background: task.priority === "CRITICAL" || task.priority === "HIGH" ? "#fee2e2" : "#f1f5f9", color: task.priority === "CRITICAL" || task.priority === "HIGH" ? "#ef4444" : "#334155" }}>{task.priority}</span></span>
+                            <span>{task.spent_hours || 0}h / {task.estimate_hours || 0}h</span>
+                          </div>
+                        </div>"""
+
+content = content.replace(card_structure_old, card_structure_new)
+
+# Improve buttons inside cards
+buttons_old = """                           <div style={{ marginLeft: "auto" }}>
+                              {statusGroup === "TODO" && <button onClick={() => updateTaskStatus(task.id, "IN_PROGRESS", task.assignee_id)} style={{ fontSize:"12px" }}>En Progreso →</button>}
+                              {statusGroup === "IN_PROGRESS" && (
+                                 <>
+                                   <button onClick={() => updateTaskStatus(task.id, "TODO", task.assignee_id)} style={{ fontSize:"12px" }}>← TODO</button>
+                                   <button onClick={() => updateTaskStatus(task.id, "DONE", task.assignee_id)} style={{ marginLeft: "5px", fontSize:"12px" }}>Terminar →</button>
+                                 </>
+                              )}
+                              {statusGroup === "DONE" && <button onClick={() => updateTaskStatus(task.id, "IN_PROGRESS", task.assignee_id)} style={{ fontSize:"12px" }}>← En Progreso</button>}
+                           </div>"""
+
+buttons_new = """                           <div style={{ marginLeft: "auto", display: "flex", gap: "6px" }}>
+                              {statusGroup === "TODO" && <button onClick={() => updateTaskStatus(task.id, "IN_PROGRESS", task.assignee_id)} style={{ fontSize:"12px", padding: "6px 12px", background: "#3b82f6", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>En Progreso →</button>}
+                              {statusGroup === "IN_PROGRESS" && (
+                                 <>
+                                   <button onClick={() => updateTaskStatus(task.id, "TODO", task.assignee_id)} style={{ fontSize:"12px", padding: "6px 12px", background: "#f1f5f9", color: "#334155", border: "none", borderRadius: "4px", cursor: "pointer" }}>← TODO</button>
+                                   <button onClick={() => updateTaskStatus(task.id, "DONE", task.assignee_id)} style={{ fontSize:"12px", padding: "6px 12px", background: "#10b981", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>Terminar ✓</button>
+                                 </>
+                              )}
+                              {statusGroup === "DONE" && <button onClick={() => updateTaskStatus(task.id, "IN_PROGRESS", task.assignee_id)} style={{ fontSize:"12px", padding: "6px 12px", background: "#f1f5f9", color: "#334155", border: "none", borderRadius: "4px", cursor: "pointer" }}>← En Progreso</button>}
+                           </div>"""
+
+content = content.replace(buttons_old, buttons_new)
+
+with open(path, 'w') as f:
+    f.write(content)
+EOF
+python3 fix_kanban_cards.py
+cat << 'EOF' > fix_project_page.py
+import re
+
+path = "frontend/app/projects/[id]/page.tsx"
+with open(path, 'r') as f:
+    content = f.read()
+
+# Make card containers better there
+content = content.replace('padding: "20px", fontFamily: "sans-serif"', 'padding: "40px", maxWidth: "1200px", margin: "0 auto", fontFamily: "inherit"')
+content = content.replace('background: "white", padding: "15px", margin: "10px 0", borderRadius: "5px", border: "1px solid #ddd", boxShadow: "0 2px 4px rgba(0,0,0,0.05)"', 'background: "white", padding: "20px", margin: "16px 0", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", gap: "10px", transition: "all 0.2s"')
+
+with open(path, 'w') as f:
+    f.write(content)
+EOF
+python3 fix_project_page.py
+npm run build --prefix frontend
+cat docker-compose.yml
+head -n 5 docker-compose.yml
+cat frontend/Dockerfile
+cat frontend/Dockerfile
+rm -rf frontend/node_modules frontend/package-lock.json && cd frontend && npm install
+cd frontend && npx next info
+docker compose down && docker compose build frontend && docker compose up -d frontend && sleep 5 && docker compose logs frontend
+docker compose logs frontend
+cat frontend/app/layout.tsx
+cat << 'EOF' > apple_style.py
+import os
+
+files = [
+    "frontend/app/layout.tsx",
+    "frontend/app/login/page.tsx",
+    "frontend/app/register/page.tsx",
+    "frontend/app/dashboard/page.tsx",
+    "frontend/app/projects/[id]/page.tsx",
+    "frontend/app/projects/[id]/sprints/[sprintId]/page.tsx",
+    "frontend/app/page.tsx"
+]
+
+layout_css_old = '''        <style dangerouslySetInnerHTML={{__html: `
+          body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+          }
+          button {
+            font-family: inherit;
+            transition: all 0.2s ease-in-out;
+          }
+          button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+          }
+          input, select {
+            font-family: inherit;
+            border: 1px solid #e2e8f0;
+            outline: none;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+          }
+          input:focus, select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+          }
+          a {
+            color: #2563eb;
+            text-decoration: none;
+          }
+          a:hover {
+            text-decoration: underline;
+          }
+        `}} />'''
+
+layout_css_new = '''        <style dangerouslySetInnerHTML={{__html: `
+          body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            -webkit-font-smoothing: antialiased;
+          }
+          button {
+            font-family: inherit;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border-radius: 12px !important;
+          }
+          button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+          }
+          button:active {
+            transform: scale(0.98);
+          }
+          input, select {
+            font-family: inherit;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px !important;
+            outline: none;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+          }
+          input:focus, select:focus {
+            border-color: #0071e3;
+            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+            background: #fff;
+          }
+          a {
+            color: #0071e3;
+            text-decoration: none;
+            transition: opacity 0.2s ease;
+          }
+          a:hover {
+            opacity: 0.8;
+          }
+          
+          /* Apple-like scrollbar */
+          ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+          ::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          ::-webkit-scrollbar-thumb {
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 10px;
+          }
+          ::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(0,0,0,0.3);
+          }
+        `}} />'''
+
+for f in files:
+    if os.path.exists(f):
+        with open(f, "r") as file:
+            content = file.read()
+        
+        if "layout.tsx" in f:
+            content = content.replace(layout_css_old, layout_css_new)
+            
+        # Refine common card components for Glassmorphism/premium look
+        content = content.replace(
+            'background: "white", padding: "20px", margin: "16px 0", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)"',
+            'background: "rgba(255, 255, 255, 0.75)", padding: "24px", margin: "16px 0", borderRadius: "20px", border: "1px solid rgba(255, 255, 255, 0.4)", boxShadow: "0 10px 30px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)", backdropFilter: "blur(20px)"'
+        )
+
+        content = content.replace(
+            'backgroundColor: "#f1f5f9", padding: "20px", borderRadius: "16px", border: "1px solid #e2e8f0"',
+            'backgroundColor: "rgba(240, 240, 245, 0.6)", padding: "24px", borderRadius: "24px", border: "1px solid rgba(0,0,0,0.03)", backdropFilter: "blur(10px)"'
+        )
+
+        # Modals
+        content = content.replace(
+            'background: "white", padding: "30px", borderRadius: "16px", width: "450px", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"',
+            'background: "rgba(255, 255, 255, 0.85)", padding: "32px", borderRadius: "24px", width: "450px", boxShadow: "0 24px 48px rgba(0,0,0,0.12), 0 0 1px rgba(0,0,0,0.1)", backdropFilter: "blur(40px) saturate(150%)", border: "1px solid rgba(255,255,255,0.5)"'
+        )
+
+        # Buttons
+        content = content.replace('background: "#2563eb", boxShadow: "0 1px 2px rgba(0,0,0,0.05)"', 'background: "#0071e3", color: "white", fontWeight: "500"')
+        content = content.replace('background: "#10b981"', 'background: "#34c759", color: "white", fontWeight: "500"')
+        content = content.replace('background: "#ef4444"', 'background: "#ff3b30", color: "white", fontWeight: "500"')
+        content = content.replace('background: "#0ea5e9"', 'background: "#5ac8fa", color: "white", fontWeight: "500"')
+        content = content.replace('background: "#e2e8f0", color: "#334155"', 'background: "#e5e5ea", color: "#1d1d1f", fontWeight: "500"')
+
+        # Kanban Sprint details specifically
+        content = content.replace(
+            'border: "1px solid #e2e8f0"',
+            'border: "1px solid rgba(0, 0, 0, 0.04)"'
+        )
+        content = content.replace(
+            'background: "#f8fafc"',
+            'background: "rgba(255, 255, 255, 0.6)", backdropFilter: "blur(10px)"'
+        )
+
+        # Header adjustments
+        content = content.replace(
+            'borderBottom: "1px solid #ccc"',
+            'borderBottom: "1px solid rgba(0,0,0,0.06)"'
+        )
+        
+        content = content.replace(
+            'background: "rgba(0,0,0,0.5)"',
+            'background: "rgba(0,0,0,0.25)", backdropFilter: "blur(5px)"'
+        )
+
+
+        with open(f, "w") as file:
+            file.write(content)
+EOF
+python3 apple_style.py
+cat frontend/app/layout.tsx
+cat << 'EOF' > run_apple.py
+import re
+
+files = [
+    "frontend/app/login/page.tsx",
+    "frontend/app/register/page.tsx",
+    "frontend/app/dashboard/page.tsx",
+    "frontend/app/projects/[id]/page.tsx",
+    "frontend/app/projects/[id]/sprints/[sprintId]/page.tsx"
+]
+
+for f in files:
+    try:
+        with open(f, 'r') as fp:
+            content = fp.read()
+        
+        # General background
+        content = content.replace('backgroundColor: "#f1f5f9"', 'background: "rgba(255, 255, 255, 0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)"')
+        # Main cards
+        content = content.replace('background: "white", padding: "20px", margin: "16px 0", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)"', 
+                                  'background: "rgba(255, 255, 255, 0.65)", padding: "24px", margin: "16px 0", borderRadius: "20px", border: "1px solid rgba(255, 255, 255, 0.4)", boxShadow: "0 8px 32px rgba(0,0,0,0.06)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)"')
+                                  
+        # Inner kanban tasks
+        content = content.replace('background: "#f8fafc", padding: "12px", borderRadius: "8px", marginBottom: "12px", border: "1px solid #e2e8f0"',
+                                  'background: "rgba(255, 255, 255, 0.9)", padding: "16px", borderRadius: "16px", marginBottom: "12px", border: "1px solid rgba(255,255,255,0.8)", boxShadow: "0 4px 12px rgba(0,0,0,0.04)"')
+
+        # Modals container
+        content = content.replace('background: "rgba(0,0,0,0.5)"', 'background: "rgba(0,0,0,0.2)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)"')
+        # Modal Inner
+        content = content.replace('background: "white", padding: "30px", borderRadius: "16px", width: "450px", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"',
+                                  'background: "rgba(255, 255, 255, 0.85)", padding: "32px", borderRadius: "24px", width: "450px", boxShadow: "0 24px 48px rgba(0,0,0,0.12)", backdropFilter: "blur(40px) saturate(150%)", border: "1px solid rgba(255, 255, 255, 0.5)"')
+
+        # Buttons
+        content = content.replace('background: "#3b82f6", color: "white"', 'background: "#0071e3", color: "white", fontWeight: "500"')
+        content = content.replace('background: "#2563eb"', 'background: "#0071e3"')
+        content = content.replace('background: "#10b981"', 'background: "#34c759"')
+        content = content.replace('background: "#ef4444"', 'background: "#ff3b30"')
+        
+        with open(f, 'w') as fp:
+            fp.write(content)
+    except FileNotFoundError:
+        pass
+EOF
+python3 run_apple.py
+cat frontend/app/dashboard/page.tsx
+cat frontend/app/dashboard/page.tsx | grep background
+cat << 'EOF' > apply_glassmorphism.py
+import re
+import glob
+
+# Recursive search for all page.tsx files
+files = glob.glob("frontend/app/**/page.tsx", recursive=True)
+
+for f in files:
+    with open(f, "r") as file:
+        content = file.read()
+
+    # 1. Background standard list or boards
+    content = re.sub(
+        r'backgroundColor:\s*"#f1f5f9"',
+        r'backgroundColor: "rgba(255, 255, 255, 0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)"',
+        content
+    )
+
+    # 2. Main content cards (white backgrounds) -> Glassmorphism
+    content = re.sub(
+        r'background:\s*"white",\s*padding:\s*"20px",\s*margin:\s*"16px 0",\s*borderRadius:\s*"12px",\s*border:\s*"1px solid #e2e8f0",\s*boxShadow:\s*"0 4px 6px -1px rgba\(0,0,0,0\.1\), 0 2px 4px -1px rgba\(0,0,0,0\.06\)"',
+        r'background: "rgba(255, 255, 255, 0.7)", padding: "24px", margin: "16px 0", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.6)", boxShadow: "0 8px 32px rgba(0,0,0,0.06)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)"',
+        content
+    )
+    
+    # login/register inputs specifically
+    content = re.sub(
+        r'background:\s*"white",\s*padding:\s*"40px",\s*borderRadius:\s*"8px",\s*boxShadow:\s*"0 4px 6px -1px #ccc"',
+        r'background: "rgba(255,255,255,0.85)", padding: "40px", borderRadius: "24px", border: "1px solid rgba(255,255,255,0.4)", boxShadow: "0 24px 48px rgba(0,0,0,0.12)", backdropFilter: "blur(40px) saturate(150%)", WebkitBackdropFilter: "blur(40px) saturate(150%)"',
+        content
+    )
+
+    # 3. Inner task cards
+    content = re.sub(
+        r'background:\s*"#f8fafc",\s*padding:\s*"12px",\s*borderRadius:\s*"8px",\s*marginBottom:\s*"12px",\s*border:\s*"1px solid #e2e8f0"',
+        r'background: "rgba(255, 255, 255, 0.95)", padding: "16px", borderRadius: "16px", marginBottom: "12px", border: "1px solid rgba(255,255,255,0.8)", boxShadow: "0 4px 12px rgba(0,0,0,0.04)"',
+        content
+    )
+
+    # 4. Modals and Overlays
+    content = re.sub(
+        r'background:\s*"rgba\(0,0,0,0\.5\)"',
+        r'background: "rgba(0,0,0,0.2)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)"',
+        content
+    )
+    
+    # 5. Modal Boxes
+    content = re.sub(
+        r'background:\s*"white",\s*padding:\s*"30px",\s*borderRadius:\s*"16px",\s*width:\s*"450px",\s*boxShadow:\s*"0 20px 25px -5px rgba\(0, 0, 0, 0\.1\), 0 10px 10px -5px rgba\(0, 0, 0, 0\.04\)"',
+        r'background: "rgba(255, 255, 255, 0.85)", padding: "32px", borderRadius: "24px", width: "450px", boxShadow: "0 24px 48px rgba(0,0,0,0.12)", backdropFilter: "blur(40px) saturate(150%)", WebkitBackdropFilter: "blur(40px) saturate(150%)", border: "1px solid rgba(255,255,255,0.5)"',
+        content
+    )
+    
+    # 6. Button Colors
+    content = content.replace('"#2563eb"', '"#0071e3"').replace('"#10b981"', '"#34c759"').replace('"#ef4444"', '"#ff3b30"')
+    
+    # Layout background gradient maybe? We can inject a cool apple background in the body via global, but let's stick to the main div replacing if possible.
+    # Check if there is an outer div that doesn't have a background but wraps the content
+    
+    with open(f, "w") as file:
+        file.write(content)
+
+EOF
+python3 apply_glassmorphism.py
+cat << 'EOF' > bg_apple.py
+import re
+with open("frontend/app/layout.tsx", "r") as f:
+    text = f.read()
+
+# Add a cool macOS abstract gradient background to body
+apple_bg = """          body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(-45deg, #e0eafc, #cfdef3, #d4fc79, #96e6a1);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #1d1d1f;
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.015em;
+            min-height: 100vh;
+          }
+          @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }"""
+
+text = re.sub(r'          body \{.+?letter-spacing: -0\.015em;\n          \}', apple_bg, text, flags=re.DOTALL)
+
+with open("frontend/app/layout.tsx", "w") as f:
+    f.write(text)
+EOF
+python3 bg_apple.py
+cat frontend/app/layout.tsx
+npm run build --prefix frontend
+cat frontend/app/projects/\[id\]/page.tsx | grep "Asignar Usuario al Proyecto" -B 5 -A 20
+grep -A 20 -B 5 "Asignar Usuario al Proyecto" frontend/app/projects/\[id\]/page.tsx
+cat << 'EOF' > patch_prompts.py
+import re
+import sys
+
+def apply_patch():
+    file_path = "frontend/app/projects/[id]/sprints/[sprintId]/page.tsx"
+    with open(file_path, "r") as f:
+        content = f.read()
+
+    # We need to add state for the custom prompt
+    if "const [promptConfig, setPromptConfig] = useState" not in content:
+        state_decl = """  const [showAssignModalForTask, setShowAssignModalForTask] = useState<number | null>(null);
+  const [promptConfig, setPromptConfig] = useState<{isOpen: boolean, title: string, defaultValue: string, onConfirm: (val: string) => void} | null>(null);
+"""
+        content = content.replace("  const [showAssignModalForTask, setShowAssignModalForTask] = useState<number | null>(null);\n", state_decl)
+
+    # Add the prompt modal UI before the final </main> OR in the return
+    if "promptConfig?.isOpen &&" not in content:
+        modal_ui = """
+      {promptConfig?.isOpen && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(255,255,255,0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000}}>
+          <div style={{ background: "rgba(255,255,255,0.85)", padding: "24px", borderRadius: "24px", width: "360px", maxWidth: "90%", boxShadow: "0 25px 50px rgba(0,0,0,0.1)", border: "1px solid rgba(255,255,255,0.6)", textAlign: "center" }}>
+             <p style={{ margin: "0 0 20px 0", fontWeight: 600, fontSize: "16px", color: "#1d1d1f" }}>
+               {promptConfig.title}
+             </p>
+             <input 
+               type="text" 
+               id="custom-prompt-input"
+               defaultValue={promptConfig.defaultValue}
+               style={{ width: "100%", padding: "12px", marginBottom: "20px", boxSizing: "border-box", borderRadius: "10px", border: "1px solid rgba(0,0,0,0.1)", background: "rgba(255,255,255,0.8)", outline: "none", fontSize: "15px", transition: "all 0.3s ease" }}
+               onFocus={(e) => { e.target.style.boxShadow = "0 0 0 4px rgba(0,113,227,0.2)"; e.target.style.borderColor = "#0071e3"; }}
+               onBlur={(e) => { e.target.style.boxShadow = "none"; e.target.style.borderColor = "rgba(0,0,0,0.1)"; }}
+             />
+             <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+               <button 
+                 onClick={() => setPromptConfig(null)} 
+                 style={{ flex: 1, padding: "10px 0", background: "none", color: "#0071e3", border: "1px solid rgba(0,113,227,0.3)", borderRadius: "20px", cursor: "pointer", fontSize: "15px", fontWeight: 500, transition: "all 0.2s" }}
+                 onMouseOver={(e) => e.currentTarget.style.background = "rgba(0,113,227,0.1)"}
+                 onMouseOut={(e) => e.currentTarget.style.background = "none"}
+               >
+                 Cancelar
+               </button>
+               <button 
+                 onClick={() => {
+                   const val = (document.getElementById("custom-prompt-input") as HTMLInputElement).value;
+                   promptConfig.onConfirm(val);
+                   setPromptConfig(null);
+                 }} 
+                 style={{ flex: 1, padding: "10px 0", background: "#0071e3", color: "white", border: "none", borderRadius: "20px", cursor: "pointer", fontSize: "15px", fontWeight: 500, transition: "all 0.2s" }}
+                 onMouseOver={(e) => e.currentTarget.style.transform = "scale(0.96)"}
+                 onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
+               >
+                 Aceptar
+               </button>
+             </div>
+          </div>
+        </div>
+      )}
+"""
+        content = content.replace("    </div>\n  );\n}\n", modal_ui + "\n    </div>\n  );\n}\n")
+
+    # Replace the inline prompts with setPromptConfig
+    # For + Horas
+    code_plus_old = """const hours = prompt("¿Cuántas horas adicionales usaste en esta tarea?", "1");
+                                    if (hours) {
+                                      const parsed = parseFloat(hours);
+                                      if (!isNaN(parsed)) {
+                                        tasksApi.update(task.id, { spent_hours: Math.max(0, (task.spent_hours || 0) + parsed) })
+                                          .then(fetchTasksData)
+                                          .catch(console.error);
+                                      }
+                                    }"""
+    code_plus_new = """setPromptConfig({
+                                      isOpen: true,
+                                      title: "¿Cuántas horas adicionales usaste en esta tarea?",
+                                      defaultValue: "1",
+                                      onConfirm: (hours) => {
+                                        if (hours) {
+                                          const parsed = parseFloat(hours);
+                                          if (!isNaN(parsed)) {
+                                            tasksApi.update(task.id, { spent_hours: Math.max(0, (task.spent_hours || 0) + parsed) })
+                                              .then(fetchTasksData)
+                                              .catch(console.error);
+                                          }
+                                        }
+                                      }
+                                    });"""
+    content = content.replace(code_plus_old, code_plus_new)
+
+    # For - Horas
+    code_min_old = """const hours = prompt("¿Cuántas horas deseas restar de esta tarea?", "1");
+                                    if (hours) {
+                                      const parsed = parseFloat(hours);
+                                      if (!isNaN(parsed)) {
+                                        tasksApi.update(task.id, { spent_hours: Math.max(0, (task.spent_hours || 0) - parsed) })
+                                          .then(fetchTasksData)
+                                          .catch(console.error);
+                                      }
+                                    }"""
+    code_min_new = """setPromptConfig({
+                                      isOpen: true,
+                                      title: "¿Cuántas horas deseas restar de esta tarea?",
+                                      defaultValue: "1",
+                                      onConfirm: (hours) => {
+                                        if (hours) {
+                                          const parsed = parseFloat(hours);
+                                          if (!isNaN(parsed)) {
+                                            tasksApi.update(task.id, { spent_hours: Math.max(0, (task.spent_hours || 0) - parsed) })
+                                              .then(fetchTasksData)
+                                              .catch(console.error);
+                                          }
+                                        }
+                                      }
+                                    });"""
+    content = content.replace(code_min_old, code_min_new)
+
+    # Beautify the buttons "+ Horas" and "- Horas"
+    content = content.replace("""background: "#17a2b8", color: "white", border: "none", padding: "5px 8px", borderRadius: "3px", cursor: "pointer", fontSize:"12px" """, """background: "rgba(0,113,227,0.1)", color: "#0071e3", border: "none", padding: "5px 10px", borderRadius: "12px", cursor: "pointer", fontSize:"12px", fontWeight:500 """)
+    content = content.replace("""background: "#dc3545", color: "white", border: "none", padding: "5px 8px", borderRadius: "3px", cursor: "pointer", fontSize:"12px" """, """background: "rgba(255,59,48,0.1)", color: "#ff3b30", border: "none", padding: "5px 10px", borderRadius: "12px", cursor: "pointer", fontSize:"12px", fontWeight:500 """)
+
+    with open(file_path, "w") as f:
+        f.write(content)
+        
+apply_patch()
+EOF
+python3 patch_prompts.py
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx | grep "setPromptConfig" -B 2 -A 5
+cat << 'EOF' > patch_assign_modal.py
+import re
+import sys
+
+def apply_patch():
+    file_path = "frontend/app/projects/[id]/page.tsx"
+    with open(file_path, "r") as f:
+        content = f.read()
+
+    # The existing modal starts and ends around:
+    # {showAssignModal && isManagerOrAdmin && (
+    #   <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center" }}>
+    #     <div style={{ background: "white", padding: "20px", borderRadius: "8px", width: "400px", maxWidth: "90%", maxHeight: "80vh", overflowY: "auto" }}>
+    #        <h3>Asignar Usuario al Proyecto</h3>
+    
+    old_overlay = '''  <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center" }}>'''
+    new_overlay = '''  <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(255,255,255,0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000}}>'''
+    content = content.replace(old_overlay, new_overlay)
+
+    old_modal = '''<div style={{ background: "white", padding: "20px", borderRadius: "8px", width: "400px", maxWidth: "90%", maxHeight: "80vh", overflowY: "auto" }}>'''
+    new_modal = '''<div style={{ background: "rgba(255,255,255,0.85)", padding: "24px", borderRadius: "24px", width: "400px", maxWidth: "90%", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 25px 50px rgba(0,0,0,0.1)", border: "1px solid rgba(255,255,255,0.6)" }}>'''
+    content = content.replace(old_modal, new_modal)
+    
+    old_h3 = '''<h3>Asignar Usuario al Proyecto</h3>'''
+    new_h3 = '''<h3 style={{ margin: "0 0 20px 0", fontWeight: 600, fontSize: "18px", color: "#1d1d1f", textAlign: "center" }}>Asignar Usuario al Proyecto</h3>'''
+    content = content.replace(old_h3, new_h3)
+
+    old_input = '''<input 
+               type="text" 
+               placeholder="Buscar por nombre o email..." 
+               value={searchUser} 
+               onChange={e => setSearchUser(e.target.value)}
+               style={{ width: "100%", padding: "8px", marginBottom: "15px", boxSizing: "border-box" }}
+             />'''
+    new_input = '''<input 
+               type="text" 
+               placeholder="Buscar por nombre o email..." 
+               value={searchUser} 
+               onChange={e => setSearchUser(e.target.value)}
+               style={{ width: "100%", padding: "12px", marginBottom: "20px", boxSizing: "border-box", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.1)", background: "rgba(255,255,255,0.8)", outline: "none", fontSize: "15px", transition: "all 0.3s ease" }}
+               onFocus={(e) => { e.target.style.boxShadow = "0 0 0 4px rgba(0,113,227,0.2)"; e.target.style.borderColor = "#0071e3"; }}
+               onBlur={(e) => { e.target.style.boxShadow = "none"; e.target.style.borderColor = "rgba(0,0,0,0.1)"; }}
+             />'''
+    content = content.replace(old_input, new_input)
+    
+    old_li = '''<li key={u.id} style={{ padding: "10px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>'''
+    new_li = '''<li key={u.id} style={{ padding: "12px", borderBottom: "1px solid rgba(0,0,0,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "background 0.2s" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(0,0,0,0.02)"} onMouseOut={(e) => e.currentTarget.style.background = "transparent"}>'''
+    content = content.replace(old_li, new_li)
+
+    old_button_choose = '''<button onClick={() => handleAssignUser(u.email)} style={{ background: "#28a745", color: "white", border: "none", padding: "5px 10px", borderRadius: "3px", cursor: "pointer" }}>Elegir</button>'''
+    new_button_choose = '''<button onClick={() => handleAssignUser(u.email)} style={{ background: "#34c759", color: "white", border: "none", padding: "6px 14px", borderRadius: "14px", cursor: "pointer", fontSize: "13px", fontWeight: 500, transition: "all 0.2s" }} onMouseOver={(e) => e.currentTarget.style.transform = "scale(0.96)"} onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}>Elegir</button>'''
+    content = content.replace(old_button_choose, new_button_choose)
+
+    old_button_close = '''<button onClick={() => setShowAssignModal(false)} style={{ marginTop: "15px", width: "100%", background: "#ccc", border: "none", padding: "8px", borderRadius: "4px", cursor: "pointer" }}>Cerrar</button>'''
+    new_button_close = '''<button onClick={() => setShowAssignModal(false)} style={{ marginTop: "20px", width: "100%", padding: "12px", background: "none", color: "#0071e3", border: "1px solid rgba(0,113,227,0.3)", borderRadius: "14px", cursor: "pointer", fontSize: "15px", fontWeight: 600, transition: "all 0.2s" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(0,113,227,0.1)"} onMouseOut={(e) => e.currentTarget.style.background = "none"}>Cerrar</button>'''
+    content = content.replace(old_button_close, new_button_close)
+
+    with open(file_path, "w") as f:
+        f.write(content)
+
+apply_patch()
+EOF
+python3 patch_assign_modal.py
+grep -A 20 -B 5 "Asignar Usuario a la Tarea" frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx
+cat << 'EOF' > patch_reassign_modal.py
+import re
+import sys
+
+def apply_patch():
+    file_path = "frontend/app/projects/[id]/sprints/[sprintId]/page.tsx"
+    with open(file_path, "r") as f:
+        content = f.read()
+
+    old_overlay = '''{showAssignModalForTask && isManagerOrAdmin && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ background: "white", padding: "20px", borderRadius: "8px", width: "400px", maxWidth: "90%", maxHeight: "80vh", overflowY: "auto" }}>
+             <h3>Reasignar Tarea</h3>'''
+    
+    new_overlay = '''{showAssignModalForTask && isManagerOrAdmin && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(255,255,255,0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000}}>
+          <div style={{ background: "rgba(255,255,255,0.85)", padding: "24px", borderRadius: "24px", width: "400px", maxWidth: "90%", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 25px 50px rgba(0,0,0,0.1)", border: "1px solid rgba(255,255,255,0.6)" }}>
+             <h3 style={{ margin: "0 0 20px 0", fontWeight: 600, fontSize: "18px", color: "#1d1d1f", textAlign: "center" }}>Reasignar Tarea</h3>'''
+    if old_overlay in content:
+        content = content.replace(old_overlay, new_overlay)
+
+    old_input = '''<input 
+               type="text" 
+               placeholder="Buscar por nombre o email..." 
+               value={searchUser} 
+               onChange={e => setSearchUser(e.target.value)}
+               style={{ width: "100%", padding: "8px", marginBottom: "15px", boxSizing: "border-box" }}
+             />'''
+    new_input = '''<input 
+               type="text" 
+               placeholder="Buscar por nombre o email..." 
+               value={searchUser} 
+               onChange={e => setSearchUser(e.target.value)}
+               style={{ width: "100%", padding: "12px", marginBottom: "20px", boxSizing: "border-box", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.1)", background: "rgba(255,255,255,0.8)", outline: "none", fontSize: "15px", transition: "all 0.3s ease" }}
+               onFocus={(e) => { e.target.style.boxShadow = "0 0 0 4px rgba(0,113,227,0.2)"; e.target.style.borderColor = "#0071e3"; }}
+               onBlur={(e) => { e.target.style.boxShadow = "none"; e.target.style.borderColor = "rgba(0,0,0,0.1)"; }}
+             />'''
+    if old_input in content:
+        content = content.replace(old_input, new_input)
+    
+    old_li = '''<li key={u.id} style={{ padding: "10px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>'''
+    new_li = '''<li key={u.id} style={{ padding: "12px", borderBottom: "1px solid rgba(0,0,0,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "background 0.2s" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(0,0,0,0.02)"} onMouseOut={(e) => e.currentTarget.style.background = "transparent"}>'''
+    if old_li in content:
+        content = content.replace(old_li, new_li)
+
+    old_button_choose = '''<button onClick={() => handleAssignTask(showAssignModalForTask, u.email)} style={{ background: "#28a745", color: "white", border: "none", padding: "5px 10px", borderRadius: "3px", cursor: "pointer" }}>Elegir</button>'''
+    new_button_choose = '''<button onClick={() => handleAssignTask(showAssignModalForTask, u.email)} style={{ background: "#34c759", color: "white", border: "none", padding: "6px 14px", borderRadius: "14px", cursor: "pointer", fontSize: "13px", fontWeight: 500, transition: "all 0.2s" }} onMouseOver={(e) => e.currentTarget.style.transform = "scale(0.96)"} onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}>Elegir</button>'''
+    if old_button_choose in content:
+        content = content.replace(old_button_choose, new_button_choose)
+
+    old_button_cancel = '''<button onClick={() => setShowAssignModalForTask(null)} style={{ marginTop: "15px", width: "100%", background: "#ccc", border: "none", padding: "8px", borderRadius: "4px", cursor: "pointer" }}>Cancelar</button>'''
+    new_button_cancel = '''<button onClick={() => setShowAssignModalForTask(null)} style={{ marginTop: "20px", width: "100%", padding: "12px", background: "none", color: "#0071e3", border: "1px solid rgba(0,113,227,0.3)", borderRadius: "14px", cursor: "pointer", fontSize: "15px", fontWeight: 600, transition: "all 0.2s" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(0,113,227,0.1)"} onMouseOut={(e) => e.currentTarget.style.background = "none"}>Cancelar</button>'''
+    if old_button_cancel in content:
+        content = content.replace(old_button_cancel, new_button_cancel)
+
+    with open(file_path, "w") as f:
+        f.write(content)
+
+apply_patch()
+EOF
+python3 patch_reassign_modal.py
+cat << 'EOF' > patch_global_alert.py
+import re
+
+file_path = "frontend/app/layout.tsx"
+with open(file_path, "r") as f:
+    content = f.read()
+
+# We need to make the layout a client component if it's not already?
+# Actually, layout can be a client component but usually isn't.
+# If layout is a Server Component, injecting window.alert there requires a child Client Component.
+EOF
+python3 patch_global_alert.py
+head -n 5 frontend/app/layout.tsx
+cat frontend/app/layout.tsx
+npm run build --prefix frontend
+cd frontend && npx next build | tee build.log
+tail -n 15 frontend/build.log
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx | wc -l
+cat << 'EOF' > patch_reassign_modal2.py
+import re
+import sys
+
+def apply_patch():
+    file_path = "frontend/app/projects/[id]/sprints/[sprintId]/page.tsx"
+    with open(file_path, "r") as f:
+        content = f.read()
+
+    # Overlay & Modal
+    old_overlay = '''{showAssignModalForTask && isManagerOrAdmin && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ background: "white", padding: "20px", borderRadius: "8px", width: "400px", maxWidth: "90%", maxHeight: "80vh", overflowY: "auto" }}>'''
+    
+    new_overlay = '''{showAssignModalForTask && isManagerOrAdmin && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(255,255,255,0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000}}>
+          <div style={{ background: "rgba(255,255,255,0.85)", padding: "24px", borderRadius: "24px", width: "400px", maxWidth: "90%", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 25px 50px rgba(0,0,0,0.1)", border: "1px solid rgba(255,255,255,0.6)" }}>'''
+    
+    if old_overlay in content:
+        content = content.replace(old_overlay, new_overlay)
+
+    # Header
+    old_h3 = '''<h3>Asignar Tarea:</h3>'''
+    new_h3 = '''<h3 style={{ margin: "0 0 20px 0", fontWeight: 600, fontSize: "18px", color: "#1d1d1f", textAlign: "center" }}>Asignar Tarea al Usuario</h3>'''
+    if old_h3 in content:
+        content = content.replace(old_h3, new_h3)
+
+    # Input
+    old_input = '''<input 
+               type="text" 
+               placeholder="Buscar por nombre o correo..." 
+               value={searchUser} 
+               onChange={e => setSearchUser(e.target.value)}
+               style={{ width: "100%", padding: "8px", marginBottom: "15px", boxSizing: "border-box" }}
+             />'''
+    new_input = '''<input 
+               type="text" 
+               placeholder="Buscar por nombre o correo..." 
+               value={searchUser} 
+               onChange={e => setSearchUser(e.target.value)}
+               style={{ width: "100%", padding: "12px", marginBottom: "20px", boxSizing: "border-box", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.1)", background: "rgba(255,255,255,0.8)", outline: "none", fontSize: "15px", transition: "all 0.3s ease" }}
+               onFocus={(e) => { e.target.style.boxShadow = "0 0 0 4px rgba(0,113,227,0.2)"; e.target.style.borderColor = "#0071e3"; }}
+               onBlur={(e) => { e.target.style.boxShadow = "none"; e.target.style.borderColor = "rgba(0,0,0,0.1)"; }}
+             />'''
+    if old_input in content:
+        content = content.replace(old_input, new_input)
+    
+    # Li
+    old_li = '''<li key={u.id} style={{ padding: "10px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>'''
+    new_li = '''<li key={u.id} style={{ padding: "12px", borderBottom: "1px solid rgba(0,0,0,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "background 0.2s" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(0,0,0,0.02)"} onMouseOut={(e) => e.currentTarget.style.background = "transparent"}>'''
+    if old_li in content:
+        content = content.replace(old_li, new_li)
+
+    # Button Elegir
+    old_btn_elegir = '''<button onClick={() => handleAssignTask(showAssignModalForTask, u.email)} style={{ background: "#28a745", color: "white", border: "none", padding: "5px 10px", borderRadius: "3px", cursor: "pointer" }}>Elegir</button>'''
+    new_btn_elegir = '''<button onClick={() => handleAssignTask(showAssignModalForTask, u.email)} style={{ background: "#34c759", color: "white", border: "none", padding: "6px 14px", borderRadius: "14px", cursor: "pointer", fontSize: "13px", fontWeight: 500, transition: "all 0.2s" }} onMouseOver={(e) => e.currentTarget.style.transform = "scale(0.96)"} onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}>Elegir</button>'''
+    if old_btn_elegir in content:
+        content = content.replace(old_btn_elegir, new_btn_elegir)
+
+    # Button Cancelar
+    old_btn_cancel = '''<button onClick={() => setShowAssignModalForTask(null)} style={{ marginTop: "15px", width: "100%", background: "#ccc", border: "none", padding: "8px", borderRadius: "4px", cursor: "pointer" }}>Cancelar</button>'''
+    new_btn_cancel = '''<button onClick={() => setShowAssignModalForTask(null)} style={{ marginTop: "20px", width: "100%", padding: "12px", background: "none", color: "#0071e3", border: "1px solid rgba(0,113,227,0.3)", borderRadius: "14px", cursor: "pointer", fontSize: "15px", fontWeight: 600, transition: "all 0.2s" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(0,113,227,0.1)"} onMouseOut={(e) => e.currentTarget.style.background = "none"}>Cancelar</button>'''
+    if old_btn_cancel in content:
+        content = content.replace(old_btn_cancel, new_btn_cancel)
+
+    with open(file_path, "w") as f:
+        f.write(content)
+
+apply_patch()
+EOF
+python3 patch_reassign_modal2.py
+cd frontend && npm install
+grep "prompt" frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx
+grep -A 10 -B 10 "\+ Horas" frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx | grep -A 20 -B 10 "+ Horas"
+grep -i "prompt" frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx
+cat frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx | grep -B 15 -A 15 "Horas"
+grep -A 10 -B 2 "prompt" frontend/app/projects/\[id\]/sprints/\[sprintId\]/page.tsx
+find . -maxdepth 2 -type f -name "*.py"
+ls -l *.py frontend/*.py
+rm -f patch*.py update_*.py apply_glassmorphism.py run_apple.py apple_style.py bg_apple.py frontend/patch*.py frontend/apply_glassmorphism.py frontend/run_apple.py frontend/apple_style.py frontend/bg_apple.py
+find . -maxdepth 2 -type f -name "*.py" | grep -v "backend"
+

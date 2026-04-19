@@ -29,3 +29,8 @@ def get_admin_user(current_user = Depends(get_current_user)):
     if current_user.role != Role.ADMIN:
         raise HTTPException(status_code=403, detail="Not enough privileges")
     return current_user
+
+def get_manager_user(current_user = Depends(get_current_user)):
+    if current_user.role not in [Role.ADMIN, Role.MANAGER]:
+        raise HTTPException(status_code=403, detail="Not enough privileges")
+    return current_user

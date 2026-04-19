@@ -19,5 +19,5 @@ Para nuestra próxima entrega, los permisos, flujos y calidad del producto se es
 - **Manager:** Podrá crear proyectos, asignar usuarios al proyecto, crear sprints y tareas. Además, será capaz de **asignar tareas a un usuario específico** (buscándolo/asignándolo mediante su correo o nombre).
 - **Usuario:** La visualización quedará restringida. Solo podrá ver los proyectos en los cuales participe (esté asignado) y los sprints dentro de ellos. Asimismo, **únicamente** podrá modificar las horas (tiempo usado) y el estado de las tareas que se encuentren asignadas a él.
 
-**Nota técnica y de diseño:**  
-Obviamente, dejaremos para después las mejoras visuales exhaustivas. Aunque los sistemas montados ya superan lo mínimo que un MVP estándar solicita, con el tiempo que tuvimos optamos por priorizar el avance estricto de las funciones operativas que redactamos en la "descripción" del producto, consolidando completamente el backend y los cimientos del cliente.
+**Enfoque y Calidad del Proyecto:**  
+Atendiendo al feedback recibido por parte del profesor, avanzaremos asegurando que nuestra prioridad sea entregar un proyecto **funcional, presentable y profesional**, sin dejar características a medias. Valoramos mucho estas recomendaciones y buscaremos el equilibrio exacto para lograr un resultado final de alta calidad—tanto a nivel operativo como en la interfaz de usuario—sin perder de vista los objetivos principales trazados en nuestra descripción inicial.

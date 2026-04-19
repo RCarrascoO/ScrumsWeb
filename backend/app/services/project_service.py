@@ -1,5 +1,6 @@
 ﻿from sqlmodel import Session, select
-from ..schemas.models import Project
+from ..schemas.models import Project, TeamMember, User
+from ..schemas.enums import Role
 
 class ProjectService:
     @staticmethod
@@ -15,7 +16,12 @@ class ProjectService:
         return session.get(Project, project_id)
 
     @staticmethod
-    def get_all_projects(session: Session):
+    def get_all_projects(session: Session, user: User = None):
+        if user and user.role in [Role.ADMIN, Role.MANAGER]:
+            return session.exec(select(Project)).all()
+        elif user:
+            statement = select(Project).join(TeamMember, Project.team_id == TeamMember.team_id).where(TeamMember.user_id == user.id)
+            return session.exec(statement).all()
         return session.exec(select(Project)).all()
 
     @staticmethod

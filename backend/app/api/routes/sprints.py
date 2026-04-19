@@ -3,13 +3,13 @@ from sqlmodel import Session
 from ...database import get_session
 from ...schemas.requests import SprintCreate, SprintRead
 from ...services.sprint_service import SprintService
-from ...core.auth import get_current_user
+from ...core.auth import get_current_user, get_manager_user
 from ...schemas.models import User
 
 router = APIRouter(prefix="/sprints", tags=["sprints"])
 
 @router.post("/", response_model=SprintRead)
-def create_sprint(sprint: SprintCreate, project_id: int, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+def create_sprint(sprint: SprintCreate, project_id: int, session: Session = Depends(get_session), current_user: User = Depends(get_manager_user)):
     return SprintService.create_sprint(
         session, sprint.name, sprint.goal, sprint.start_date, sprint.end_date, project_id
     )

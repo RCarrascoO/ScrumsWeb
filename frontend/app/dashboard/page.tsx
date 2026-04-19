@@ -49,7 +49,7 @@ export default function Dashboard() {
 
   if (loading || !user) return <p>Cargando...</p>;
 
-  const isAdmin = user?.role === "ADMIN";
+  const isManagerOrAdmin = user?.role === "ADMIN" || user?.role === "MANAGER";
 
   return (
     <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
@@ -64,7 +64,7 @@ export default function Dashboard() {
       <main style={{ marginTop: "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2>Tus Proyectos</h2>
-          {isAdmin && (
+          {isManagerOrAdmin && (
             <button 
               onClick={() => setIsCreating(!isCreating)}
               style={{ background: "#0070f3", color: "white", border: "none", padding: "10px 15px", borderRadius: "5px", cursor: "pointer" }}
@@ -74,7 +74,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {isCreating && isAdmin && (
+        {isCreating && isManagerOrAdmin && (
           <form onSubmit={handleCreateProject} style={{ background: "#f5f5f5", padding: "15px", borderRadius: "8px", margin: "15px 0", display: "flex", gap: "10px" }}>
             <input 
               type="text" 
