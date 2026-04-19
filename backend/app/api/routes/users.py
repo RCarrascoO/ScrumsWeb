@@ -8,7 +8,7 @@ from ...schemas.models import User
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-@router.get("/", response_model=list[UserRead])
+@router.get("", response_model=list[UserRead])
 def get_all_users(session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     return session.exec(select(User)).all()
 

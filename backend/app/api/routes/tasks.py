@@ -8,7 +8,7 @@ from ...schemas.models import User
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
-@router.post("/", response_model=TaskRead)
+@router.post("", response_model=TaskRead)
 def create_task(task: TaskCreate, sprint_id: int, session: Session = Depends(get_session), current_user: User = Depends(get_manager_user)):
     return TaskService.create_task(
         session, task.title, task.description, task.priority, task.estimate_hours, sprint_id

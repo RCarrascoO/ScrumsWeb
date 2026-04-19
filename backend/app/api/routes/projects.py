@@ -10,7 +10,7 @@ from ...schemas.models import User
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
-@router.post("/", response_model=ProjectRead)
+@router.post("", response_model=ProjectRead)
 def create_project(project: ProjectCreate, session: Session = Depends(get_session), current_user: User = Depends(get_manager_user)):
     team = TeamService.create_team(session, name=f"Team for {project.name}")
     created_project = ProjectService.create_project(session, project.name, project.description, team.id)
@@ -22,7 +22,7 @@ def create_project(project: ProjectCreate, session: Session = Depends(get_sessio
 def get_project(project_id: int, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     return ProjectService.get_project_by_id(session, project_id)
 
-@router.get("/", response_model=list[ProjectRead])
+@router.get("", response_model=list[ProjectRead])
 def get_all_projects(session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     return ProjectService.get_all_projects(session, current_user)
 

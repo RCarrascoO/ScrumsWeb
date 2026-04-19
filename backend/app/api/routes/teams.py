@@ -8,7 +8,7 @@ from ...schemas.models import User
 
 router = APIRouter(prefix="/teams", tags=["teams"])
 
-@router.post("/", response_model=TeamRead)
+@router.post("", response_model=TeamRead)
 def create_team(team: TeamCreate, session: Session = Depends(get_session), current_user: User = Depends(get_admin_user)):
     return TeamService.create_team(session, team.name, team.description)
 
